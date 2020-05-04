@@ -5,7 +5,7 @@
 #include "client.h"
 #include "common_protocol.h"
 
-static bool _get_message(FILE *input, char file_buf[], char **msg_buf, int *offset);
+static bool _get_msg(FILE *input, char file_buf[], char **msg_buf, int *offset);
 
 static int _send_message(client_t *self, char *buf, int sign_padding);
 
@@ -30,7 +30,7 @@ int client_execute(client_t *self, FILE* input){
 	do{
 		protocol_initialize(&protocol, self -> sent_messages);
 		memset(message_buffer, '\0', strlen(message_buffer));
-		file_end = _get_message(input, file_buffer, &message_buffer, ptr);
+		file_end = _get_msg(input, file_buffer, &message_buffer, ptr);
 		sign_padding = protocol_translate(&protocol, &message_buffer);
 		status = _send_message(self, message_buffer, sign_padding);
 		if(status == 1){
@@ -50,7 +50,7 @@ int client_destroy(client_t *self){
 	return 0;
 }
 
-static bool _get_message(FILE *input, char file_buf[], char **msg_buf, int *offset){
+static bool _get_msg(FILE *input, char file_buf[], char **msg_buf, int *offset){
 	bool line_end = false, file_end = false;
 	int i;
 	char *aux_buffer = calloc(1, sizeof(char));

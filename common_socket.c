@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 #include "common_socket.h"
 
-static struct addrinfo* _get_address_list(const char* hostname, const char* port, int flag);
+static struct addrinfo* _get_addr_list(const char* hostname, const char* port, int flag);
 
 int socket_initialize(socket_t *self, int fd){
     self -> fd = fd;
@@ -16,7 +16,7 @@ int socket_initialize(socket_t *self, int fd){
 }
 
 int socket_connect(socket_t *self, const char* hostname, const char* port){
-    struct addrinfo *result_list = _get_address_list(hostname, port, 0);
+    struct addrinfo *result_list = _get_addr_list(hostname, port, 0);
     struct addrinfo *ptr;
     int fd;
     for (ptr = result_list; ptr != NULL; ptr = ptr -> ai_next) {
@@ -36,7 +36,7 @@ int socket_connect(socket_t *self, const char* hostname, const char* port){
 }
 
 int socket_bind_listen(socket_t *self, const char* hostname, const char* port){
-    struct addrinfo *result_list = _get_address_list(hostname, port, AI_PASSIVE);
+    struct addrinfo *result_list = _get_addr_list(hostname, port, AI_PASSIVE);
     struct addrinfo *ptr;
     int fd;
     for (ptr = result_list; ptr != NULL; ptr = ptr -> ai_next){
@@ -58,7 +58,7 @@ int socket_bind_listen(socket_t *self, const char* hostname, const char* port){
     return 0;
 }
 
-static struct addrinfo* _get_address_list(const char* hostname, const char* port, int flag){
+static struct addrinfo* _get_addr_list(const char* hostname, const char* port, int flag){
 	struct addrinfo hints, *result_list; 
 
     memset(&hints, 0, sizeof(struct addrinfo));
@@ -101,9 +101,9 @@ int socket_receive(socket_t *self, char buf[], int len){
 }
 
 int socket_destroy(socket_t *self){
-    if(shutdown(self -> fd, SHUT_RDWR) == -1)
+    if (shutdown(self -> fd, SHUT_RDWR) == -1)
         return 1;
-    if(close(self -> fd) == -1)
+    if (close(self -> fd) == -1)
         return 1;
     return 0;
 }

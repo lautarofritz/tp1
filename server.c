@@ -11,7 +11,7 @@ static int _server_accept(server_t *self, socket_t *peer_socket);
 
 static int _recv_message(socket_t *peer_socket);
 
-static void _print_message(char initial_buf[], char header_buf[], int header_len);
+static void _print_message(char init_buf[], char header_buf[], int header_len);
 
 static void _print_header(char param_type, char *param_value);
 
@@ -57,7 +57,7 @@ int server_execute(server_t *self){
 }
 
 int server_destroy(server_t *self){
-    if(socket_destroy(&self -> socket) == 1)
+    if (socket_destroy(&self -> socket) == 1)
         return 1;
     return 0;
 }
@@ -88,13 +88,13 @@ static int _recv_message(socket_t *peer_socket){
     return status;
 }
 
-static void _print_message(char initial_buf[], char header_buf[], int header_len){
+static void _print_message(char init_buf[], char header_buf[], int header_len){
     char param_type; 
     char *param_value = calloc(1, sizeof(char));
     param_type = header_buf[0];
     int param_len, i = 0, j = 0;
 
-    printf("* Id: 0x%08x\n", (int) initial_buf[11]);
+    printf("* Id: 0x%08x\n", (int) init_buf[11]);
     while (i < header_len){
         param_type = header_buf[i];
         if (param_type == 8)
@@ -126,19 +126,19 @@ static void _print_header(char param_type, char *param_value){
             printf("* Destino: ");
         break;
         case 1:
-            printf("* Path: ");
+            printf("* Ruta: ");
         break;
         case 2:
             printf("* Interfaz: ");
         break;
         case 3:
-            printf("* Método: ");
+            printf("* Metodo: ");
     }
     printf("%s\n", param_value);
 }
 
 static void _print_body(char body_buf[], int body_len){ 
-    printf("* Parámetros: \n");
+    printf("* Parametros: \n");
     char *param_value = calloc(1, sizeof(char));
     int i = 0, j = 0, param_len;
 

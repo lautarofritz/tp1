@@ -3,23 +3,17 @@
 #include <string.h>
 #include <stdlib.h>
 #include "client.h"
-#include "protocol.h"
+#include "common_protocol.h"
 
-#define FLAG 0
-#define INITIAL_FD -1
-#define BUFFER_LEN 32
-#define INITIAL_HEADER_BYTES 16
-#define RESPONSE_LEN 3
+static bool _get_message(FILE *input, char file_buf[], char **msg_buf, int *offset);
 
-static bool _get_message(FILE *input, unsigned char file_buf[], unsigned char **msg_buf, int *offset);
-
-static int _send_message(client_t *self, unsigned char *buf, int sign_padding);
+static int _send_message(client_t *self, char *buf, int sign_padding);
 
 int client_initialize(client_t *self, const char* hostname, const char* port){
 	socket_t socket;
+	socket_initialize(&socket, INITIAL_FD);
 	self -> socket = socket;
-	socket_initialize(&self -> socket, INITIAL_FD);
-	if(socket_connect(&self -> socket, FLAG, hostname, port) == -1)
+	if(socket_connect(&self -> socket, hostname, port) == -1)
 		return 1;
 	self -> sent_messages = 0;
 	return 0;
@@ -27,8 +21,8 @@ int client_initialize(client_t *self, const char* hostname, const char* port){
 
 int client_execute(client_t *self, FILE* input){
 	protocol_t protocol;
-	unsigned char *message_buffer = calloc(1, sizeof(unsigned char));
-	unsigned char file_buffer[BUFFER_LEN + 1];
+	char *message_buffer = calloc(1, sizeof(char));
+	char file_buffer[BUFFER_LEN + 1];
 	int sign_padding, offset = 0, status;
 	int *ptr = &offset;
 	bool file_end;
@@ -56,13 +50,13 @@ int client_destroy(client_t *self){
 	return 0;
 }
 
-static bool _get_message(FILE *input, unsigned char file_buf[], unsigned char **msg_buf, int *offset){
+static bool _get_message(FILE *input, char file_buf[], char **msg_buf, int *offset){
 	bool line_end = false, file_end = false;
 	int i;
-	unsigned char *aux_buffer = calloc(1, sizeof(unsigned char));
+	char *aux_buffer = calloc(1, sizeof(char));
 
 	while(!line_end){
-		if(fread(file_buf, sizeof(unsigned char), BUFFER_LEN, input) != BUFFER_LEN)
+		if(fread(file_buf, sizeof(char), BUFFER_LEN, input) != BUFFER_LEN)
 			file_end = true;
 		file_buf[BUFFER_LEN] = '\0';
 		for(i = 0; i < BUFFER_LEN; i++){
@@ -83,14 +77,14 @@ static bool _get_message(FILE *input, unsigned char file_buf[], unsigned char **
 	return file_end;
 }
 
-static int _send_message(client_t *self, unsigned char *buf, int sign_padding){
+static int _send_message(client_t *self, char *buf, int sign_padding){
 	int offset = 0;
 	uint32_t header_len, body_len;
 	memcpy(&body_len, &buf[4], sizeof(int));
     memcpy(&header_len, &buf[12], sizeof(int));
     body_len = ntohl(body_len);
     header_len = ntohl(header_len);
-	unsigned char response[RESPONSE_LEN];
+	char response[RESPONSE_LEN];
 
 	if(socket_send(&self -> socket, buf, INITIAL_HEADER_BYTES, offset) == 1)				
 		return 1;

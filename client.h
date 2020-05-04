@@ -4,7 +4,12 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "socket.h"
+#include "common_socket.h"
+
+#define INITIAL_FD -1
+#define BUFFER_LEN 32
+#define INITIAL_HEADER_BYTES 16
+#define RESPONSE_LEN 3
 
 typedef struct {
 	socket_t socket;

@@ -5,28 +5,23 @@
 #include <string.h>
 #include <stdlib.h>
 #include "server.h"
-#include "socket.h"
-
-#define FLAG AI_PASSIVE
-#define INITIAL_FD -1
-#define INITIAL_HEADER_BYTES 16
-#define RESPONSE_LEN 3
+#include "common_socket.h"
 
 static int _server_accept(server_t *self, socket_t *peer_socket);
 
 static int _recv_message(socket_t *peer_socket);
 
-static void _print_message(unsigned char initial_buf[], unsigned char header_buf[], int header_len);
+static void _print_message(char initial_buf[], char header_buf[], int header_len);
 
-static void _print_header(unsigned char param_type, unsigned char *param_value);
+static void _print_header(char param_type, char *param_value);
 
-static void _print_body(unsigned char body_buf[], int body_len);
+static void _print_body(char body_buf[], int body_len);
 
 int server_initialize(server_t *self, const char* hostname, const char* port){
     socket_t socket;
+    socket_initialize(&socket, INITIAL_FD);
     self -> socket = socket;
-    socket_initialize(&self -> socket, INITIAL_FD);
-	if(socket_bind_listen(&self -> socket, FLAG, hostname, port) == -1){
+	if(socket_bind_listen(&self -> socket, hostname, port) == -1){
         return 1;
     }
     return 0;
@@ -68,7 +63,7 @@ int server_destroy(server_t *self){
 }
 
 static int _recv_message(socket_t *peer_socket){
-    unsigned char initial_buf[INITIAL_HEADER_BYTES];
+    char initial_buf[INITIAL_HEADER_BYTES];
     int body_len, header_len, status;
     status = socket_receive(peer_socket, initial_buf, INITIAL_HEADER_BYTES);
     if (status == 1)
@@ -80,7 +75,7 @@ static int _recv_message(socket_t *peer_socket){
     memcpy(&header_len, &initial_buf[12], sizeof(int));
     body_len = ntohl(body_len);
     header_len = ntohl(header_len);
-    unsigned char header_buf[header_len], body_buf[body_len];
+    char header_buf[header_len], body_buf[body_len];
     socket_receive(peer_socket, header_buf, header_len);
     socket_receive(peer_socket, body_buf, body_len);
 
@@ -88,14 +83,14 @@ static int _recv_message(socket_t *peer_socket){
     if (body_len > 0)
         _print_body(body_buf, body_len);
     printf("\n");
-    unsigned char response[RESPONSE_LEN] = "OK\n";
+    char response[RESPONSE_LEN] = "OK\n";
     socket_send(peer_socket, response, RESPONSE_LEN, 0);
     return status;
 }
 
-static void _print_message(unsigned char initial_buf[], unsigned char header_buf[], int header_len){
-    unsigned char param_type; 
-    unsigned char *param_value = calloc(1, sizeof(unsigned char));
+static void _print_message(char initial_buf[], char header_buf[], int header_len){
+    char param_type; 
+    char *param_value = calloc(1, sizeof(char));
     param_type = header_buf[0];
     int param_len, i = 0, j = 0;
 
@@ -125,7 +120,7 @@ static void _print_message(unsigned char initial_buf[], unsigned char header_buf
     free(param_value);
 }
 
-static void _print_header(unsigned char param_type, unsigned char *param_value){
+static void _print_header(char param_type, char *param_value){
     switch (param_type){
         case 6:
             printf("* Destino: ");
@@ -142,9 +137,9 @@ static void _print_header(unsigned char param_type, unsigned char *param_value){
     printf("%s\n", param_value);
 }
 
-static void _print_body(unsigned char body_buf[], int body_len){ 
+static void _print_body(char body_buf[], int body_len){ 
     printf("* Parámetros: \n");
-    unsigned char *param_value = calloc(1, sizeof(unsigned char));
+    char *param_value = calloc(1, sizeof(char));
     int i = 0, j = 0, param_len;
 
     while (i < body_len - 1){

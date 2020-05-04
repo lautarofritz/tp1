@@ -7,10 +7,23 @@
 #include "server.h"
 #include "common_socket.h"
 
+//trata de asociar el socket recibido por parámetro a una conexión entrante
+//si el file descriptor recibido es válido, inicializa al socket
+//en cuestión con él y retorna 0
+//caso contrario, retorna 1
 static int _server_accept(server_t *self, socket_t *peer_socket);
 
+//recibe el mensaje del cliente en tres partes(inicio, header y body)
+//luego envía la respuesta al cliente
+//si alguna de las recepciones falla, devuelve 1
+//si todo sale bien, devuelve el valor almacenado en "status" (2)
+//si la conexión terminó, retorna 0
 static int _recv_message(socket_t *peer_socket);
 
+//recorre el header del mensaje traducido, 
+//recuperando de él los parámetros y sus tipos
+//cada vez que consigue uno, lo envía a la función _print_header para
+//que esta lo muestre por pantalla
 static void _print_message(char init_buf[], char header_buf[], int header_len);
 
 static void _print_header(char param_type, char *param_value);
@@ -76,8 +89,10 @@ static int _recv_message(socket_t *peer_socket){
     body_len = ntohl(body_len);
     header_len = ntohl(header_len);
     char header_buf[header_len], body_buf[body_len];
-    socket_receive(peer_socket, header_buf, header_len);
-    socket_receive(peer_socket, body_buf, body_len);
+    if (socket_receive(peer_socket, header_buf, header_len) == 1)
+        return 1;
+    if (socket_receive(peer_socket, body_buf, body_len) == 1)
+        return 1;
 
     _print_message(initial_buf, header_buf, header_len);
     if (body_len > 0)
@@ -91,7 +106,7 @@ static int _recv_message(socket_t *peer_socket){
 static void _print_message(char init_buf[], char header_buf[], int header_len){
     char param_type; 
     char *param_value = calloc(1, sizeof(char));
-    param_type = header_buf[0];
+    //param_type = header_buf[0];
     int param_len, i = 0, j = 0;
 
     printf("* Id: 0x%08x\n", (int) init_buf[11]);

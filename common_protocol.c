@@ -5,25 +5,37 @@
 #include <arpa/inet.h>
 #include "common_protocol.h"
 
+//lee el mensaje hasta encontrar un espacio, en cuyo caso llama
+//a la función _write_header
+//retorna la posición del primer caracter del primer parámetro
+//(o del caracter ')' si no hay ninguno)
 static int _parse_header(protocol_t *message, char *message_buffer);
 
-//escribe el parámetro en el header
-static void _write_header(protocol_t *self, char *string, int spaces);
-//
+static void _write_header(protocol_t *self, char *str, int spaces);
+
+//asigna valores correspondientes a cada parámetro según su tipo
+//y los escribe en el header
 static void _header_assign(protocol_t *self, uint32_t header_len, int spaces);
 
 static int _padding_space(int n);
 
+//lee cada parámetro hasta encontrar una coma, en cuyo caso llama
+//a la función _write_body
 static void _parse_body(protocol_t *self, char *message_buffer, int i);
 
+//asigna ciertos valores comunes a todas las firmas
+//y los escribe en el buffer de firma
 static void _signature_initialize(protocol_t *self);
 
 static void _signature_update(protocol_t *self);
 
 static void _signature_padding(protocol_t *self, int param_count);
 
-static void _write_body(protocol_t *self, char *string);
+static void _write_body(protocol_t *self, char *str);
 
+//junta las tres "partes" del mensaje (header, signature y body)
+//y escribe el mensaje entero en el buffer provisto por el client
+//retorna el número de bytes de padding de la firma
 static int _assemble_message(protocol_t *self, char **message_buffer);
 
 void protocol_initialize(protocol_t *self, uint32_t message_id){
@@ -51,39 +63,39 @@ int protocol_translate(protocol_t *self, char **message_buffer){
 }
 
 static int _parse_header(protocol_t *self, char *message_buffer){
-	char *string = calloc(1, sizeof(char));
+	char *str = calloc(1, sizeof(char));
 	int i = 0, j = 0, spaces = 0;
 
 	while(message_buffer[i] != '('){
 		if(message_buffer[i] == ' '){
-			string = realloc(string, i - j + 1);
-			strncpy(string, message_buffer + j, i - j);
-			string[i - j] = '\0';
-			_write_header(self, string, spaces);
+			str = realloc(str, i - j + 1);
+			strncpy(str, message_buffer + j, i - j);
+			str[i - j] = '\0';
+			_write_header(self, str, spaces);
 			spaces++;
 			j = i + 1;
 		}
 		i++;
 	}
 
-	string = realloc(string, i - j + 1);
-	strncpy(string, message_buffer + j, i - j);
-	string[i - j] = '\0';
-	_write_header(self, string, spaces);
-	free(string);
+	str = realloc(str, i - j + 1);
+	strncpy(str, message_buffer + j, i - j);
+	str[i - j] = '\0';
+	_write_header(self, str, spaces);
+	free(str);
 	i++;
 	return i;
 }
 
-static void _write_header(protocol_t *self, char *string, int spaces){ 
+static void _write_header(protocol_t *self, char *str, int spaces){ 
 	uint32_t new_header_len;
-	new_header_len = self -> header_len + 8 + _padding_space(strlen(string));
+	new_header_len = self -> header_len + 8 + _padding_space(strlen(str));
 	self -> header = realloc(self -> header, new_header_len);
 	_header_assign(self, self -> header_len, spaces);
-	uint32_t str_len = htonl(strlen(string));
+	uint32_t str_len = htonl(strlen(str));
 	memcpy((self->header + self->header_len + 4), &str_len, sizeof(uint32_t));
-	strncpy((self -> header + self -> header_len + 8), string, strlen(string));
-	for(int i = self->header_len + 8 + strlen(string); i < new_header_len; i++)
+	strncpy((self -> header + self -> header_len + 8), str, strlen(str));
+	for(int i = self->header_len + 8 + strlen(str); i < new_header_len; i++)
 		*(self -> header + i) = '\0';
 	self -> header_len = new_header_len;
 }
@@ -119,7 +131,7 @@ static int _padding_space(int n){
 }
 
 static void _parse_body(protocol_t *self, char *message_buffer, int i){
-	char *string = calloc(1, sizeof(char));
+	char *str = calloc(1, sizeof(char));
 	int k = i, j = i, param_count = 0;
 	bool signature_init = false;
 
@@ -130,11 +142,11 @@ static void _parse_body(protocol_t *self, char *message_buffer, int i){
 			signature_init = true;
 		}
 		if(message_buffer[k] == ','){
-			string = realloc(string, k - j + 1);
-			strncpy(string, message_buffer + j, k - j);
-			string[k - j] = '\0';
+			str = realloc(str, k - j + 1);
+			strncpy(str, message_buffer + j, k - j);
+			str[k - j] = '\0';
 			param_count++;
-			_write_body(self, string);
+			_write_body(self, str);
 			_signature_update(self);
 			j = k + 1;
 		}
@@ -142,14 +154,14 @@ static void _parse_body(protocol_t *self, char *message_buffer, int i){
 	}
 
 	if(signature_init){
-		string = realloc(string, k - j + 1);
-		strncpy(string, message_buffer + j, k - j);
-		string[k - j] = '\0';
-		_write_body(self, string);
+		str = realloc(str, k - j + 1);
+		strncpy(str, message_buffer + j, k - j);
+		str[k - j] = '\0';
+		_write_body(self, str);
 		_signature_padding(self, param_count);
 		j = k + 1;
 	}
-	free(string);
+	free(str);
 }
 
 static void _signature_initialize(protocol_t *self){
@@ -184,13 +196,13 @@ static void _signature_padding(protocol_t *self, int param_count){
 		*(self -> sign + self -> sign_len + i) = '\0';
 }
 
-static void _write_body(protocol_t *self, char *string){
-	uint32_t string_len = htonl(strlen(string));
-	self->body = realloc(self->body, self->body_len + strlen(string) + 5);
-	memcpy((self -> body + self -> body_len), &string_len, sizeof(uint32_t));
-	strncpy(self -> body + self -> body_len + 4, string, strlen(string));
-	*(self -> body + self -> body_len + 4 + strlen(string)) = '\0';
-	self -> body_len += strlen(string) + 5;
+static void _write_body(protocol_t *self, char *str){
+	uint32_t str_len = htonl(strlen(str));
+	self->body = realloc(self->body, self->body_len + strlen(str) + 5);
+	memcpy((self -> body + self -> body_len), &str_len, sizeof(uint32_t));
+	strncpy(self -> body + self -> body_len + 4, str, strlen(str));
+	*(self -> body + self -> body_len + 4 + strlen(str)) = '\0';
+	self -> body_len += strlen(str) + 5;
 }
 
 static int _assemble_message(protocol_t *self, char **message_buffer){

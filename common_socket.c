@@ -8,11 +8,10 @@
 #include <arpa/inet.h>
 #include "common_socket.h"
 
-static struct addrinfo* _get_addr_list(const char* hostname, const char* port, int flag);
+static list *_get_addr_list(const char* hostname, const char* port, int flag);
 
-int socket_initialize(socket_t *self, int fd){
+void socket_initialize(socket_t *self, int fd){
     self -> fd = fd;
-    return 0;
 }
 
 int socket_connect(socket_t *self, const char* hostname, const char* port){
@@ -58,7 +57,7 @@ int socket_bind_listen(socket_t *self, const char* hostname, const char* port){
     return 0;
 }
 
-static struct addrinfo* _get_addr_list(const char* hostname, const char* port, int flag){
+static list* _get_addr_list(const char* hostname, const char* port, int flag){
 	struct addrinfo hints, *result_list; 
 
     memset(&hints, 0, sizeof(struct addrinfo));
@@ -77,12 +76,13 @@ int socket_accept(socket_t *self){
 }
 
 int socket_send(socket_t *self, char *msg, int len, int offset){
-    int total_sent = 0, sent = 0;
-    while (total_sent < len){
-       sent = send(self -> fd, &msg[total_sent + offset], len - total_sent, MSG_NOSIGNAL);
+    int o = offset; //para cumplir con los 80 caracteres por línea
+    int total = 0, sent = 0;
+    while (total < len){
+       sent = send(self -> fd, &msg[total + o], len - total, MSG_NOSIGNAL);
        if (sent == -1)
            return 1;
-       total_sent += sent;
+       total += sent;
     }
     return 0;
 }

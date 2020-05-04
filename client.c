@@ -5,8 +5,15 @@
 #include "client.h"
 #include "common_protocol.h"
 
+//toma una línea del archivo para su posterior traducción
+//si no alcanzo el final del archivo, retorna false
+//caso contrario, retorna true
 static bool _get_msg(FILE *input, char file_buf[], char **msg_buf, int *offset);
 
+//le otorga el mensaje traducido al socket para su envío
+//primero manda los 16 bytes iniciales, y luego el header y el body (si lo hay)
+//luego, recibe la respuesta del servidor
+//retorna 0 si el envío fue exitoso o 1 si hubo algún problema durante este
 static int _send_message(client_t *self, char *buf, int sign_padding);
 
 int client_initialize(client_t *self, const char* hostname, const char* port){

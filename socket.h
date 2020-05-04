@@ -7,8 +7,6 @@ typedef struct{
 
 int socket_initialize(socket_t *self, int fd);
 
-static struct addrinfo* _get_address_list(int flag, const char* hostname, const char* port);
-
 int socket_connect(socket_t *self, int flag, const char* hostname, const char* port);
 
 int socket_bind_listen(socket_t *self, int flag, const char* hostname, const char* port);

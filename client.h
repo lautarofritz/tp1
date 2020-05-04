@@ -17,8 +17,4 @@ int client_execute(client_t *self, FILE* input);
 
 int client_destroy(client_t *self);
 
-static bool _get_message(FILE *input, unsigned char file_buf[], unsigned char **msg_buf, int *offset);
-
-static int _send_message(client_t *self, unsigned char *buf, int sign_padding);
-
 #endif

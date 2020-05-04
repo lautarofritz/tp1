@@ -12,6 +12,16 @@
 #define INITIAL_HEADER_BYTES 16
 #define RESPONSE_LEN 3
 
+static int _server_accept(server_t *self, socket_t *peer_socket);
+
+static int _recv_message(socket_t *peer_socket);
+
+static void _print_message(unsigned char initial_buf[], unsigned char header_buf[], int header_len);
+
+static void _print_header(unsigned char param_type, unsigned char *param_value);
+
+static void _print_body(unsigned char body_buf[], int body_len);
+
 int server_initialize(server_t *self, const char* hostname, const char* port){
     socket_t socket;
     self -> socket = socket;
@@ -22,7 +32,7 @@ int server_initialize(server_t *self, const char* hostname, const char* port){
     return 0;
 }
 
-int _server_accept(server_t *self, socket_t *peer_socket){
+static int _server_accept(server_t *self, socket_t *peer_socket){
     int accept_fd = socket_accept(&self -> socket);
     if (accept_fd == -1){
         return 1;
@@ -73,7 +83,7 @@ static int _recv_message(socket_t *peer_socket){
     unsigned char header_buf[header_len], body_buf[body_len];
     socket_receive(peer_socket, header_buf, header_len);
     socket_receive(peer_socket, body_buf, body_len);
-    
+
     _print_message(initial_buf, header_buf, header_len);
     if (body_len > 0)
         _print_body(body_buf, body_len);

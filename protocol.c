@@ -8,6 +8,27 @@
 #define INITIAL_HEADER_BYTES 16
 #define INITIAL_SIGNATURE_BYTES 7
 
+static int _parse_header(protocol_t *message, byte *message_buffer);
+
+//escribe el parámetro en el header
+static void _write_header(protocol_t *self, byte *string, int space_count);
+//
+static void _header_assign(protocol_t *self, uint32_t old_header_len, int space_count);
+
+static int _padding_space(int n);
+
+static void _parse_body(protocol_t *self, byte *message_buffer, int i);
+
+static void _signature_initialize(protocol_t *self);
+
+static void _signature_update(protocol_t *self);
+
+static void _signature_padding(protocol_t *self, int param_count);
+
+static void _write_body(protocol_t *self, byte *string);
+
+static int _assemble_message(protocol_t *self, byte **message_buffer);
+
 void protocol_initialize(protocol_t *self, uint32_t message_id){
 	message_id++;
 	uint32_t id = htonl(message_id);
@@ -122,7 +143,7 @@ static void _parse_body(protocol_t *self, byte *message_buffer, int i){
 		}
 		k++;
 	}
-	
+
 	if(signature_init){
 		string = realloc(string, k - j + 1);
 		strncpy(string, message_buffer + j, k - j);

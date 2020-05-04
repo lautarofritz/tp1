@@ -11,6 +11,10 @@
 #define INITIAL_HEADER_BYTES 16
 #define RESPONSE_LEN 3
 
+static bool _get_message(FILE *input, unsigned char file_buf[], unsigned char **msg_buf, int *offset);
+
+static int _send_message(client_t *self, unsigned char *buf, int sign_padding);
+
 int client_initialize(client_t *self, const char* hostname, const char* port){
 	socket_t socket;
 	self -> socket = socket;

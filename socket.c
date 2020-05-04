@@ -8,6 +8,8 @@
 #include <arpa/inet.h>
 #include "socket.h"
 
+static struct addrinfo* _get_address_list(int flag, const char* hostname, const char* port);
+
 int socket_initialize(socket_t *self, int fd){
     self -> fd = fd;
     return 0;

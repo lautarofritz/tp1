@@ -138,7 +138,7 @@ static void _print_header(char param_type, char *param_value){
 }
 
 static void _print_body(char body_buf[], int body_len){ 
-    printf("* Parametros: \n");
+    printf("* Parametros:\n");
     char *param_value = calloc(1, sizeof(char));
     int i = 0, j = 0, param_len;
 

@@ -6,8 +6,6 @@
 #define INITIAL_HEADER_BYTES 16
 #define INITIAL_SIGNATURE_BYTES 7
 
-//typedef unsigned char byte;
-
 typedef struct{
 	char *header;
 	char *sign;

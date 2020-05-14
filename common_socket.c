@@ -1,17 +1,16 @@
 #define _POSIX_C_SOURCE 201112L
-#include <stdio.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <netdb.h>
 #include <string.h>
-#include <stdlib.h>
-#include <arpa/inet.h>
 #include "common_socket.h"
+
+#define INITIAL_FD -1
 
 static list *_get_addr_list(const char* hostname, const char* port, int flag);
 
-void socket_initialize(socket_t *self, int fd){
-    self -> fd = fd;
+void socket_initialize(socket_t *self){
+    self -> fd = INITIAL_FD;
 }
 
 int socket_connect(socket_t *self, const char* hostname, const char* port){
@@ -70,21 +69,23 @@ static list* _get_addr_list(const char* hostname, const char* port, int flag){
     return result_list;
 }
 
-int socket_accept(socket_t *self){
+int socket_accept(socket_t *self, socket_t *peer){
     int accept_fd = accept(self -> fd, NULL, NULL);
-    return accept_fd;
+    if (accept_fd == -1)
+        return 1;
+    peer -> fd = accept_fd;
+    return 0;
 }
 
-int socket_send(socket_t *self, char *msg, int len, int offset){
-    int o = offset; //para cumplir con los 80 caracteres por línea
+int socket_send(socket_t *self, char *msg, int len){
     int total = 0, sent = 0;
     while (total < len){
-       sent = send(self -> fd, &msg[total + o], len - total, MSG_NOSIGNAL);
+       sent = send(self -> fd, &msg[total], len - total, MSG_NOSIGNAL);
        if (sent == -1)
-           return 1;
+           return -1;
        total += sent;
     }
-    return 0;
+    return total;
 }
 
 int socket_receive(socket_t *self, char buf[], int len){
@@ -92,12 +93,12 @@ int socket_receive(socket_t *self, char buf[], int len){
     while (total_recv < len){
        received = recv(self -> fd, &buf[total_recv], len - total_recv, 0);
        if (received == -1)
-           return 1;
+           return -1;
        if (received == 0)
            return 0;
        total_recv += received;
     }
-    return 2;
+    return total_recv;
 }
 
 int socket_destroy(socket_t *self){

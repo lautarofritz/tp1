@@ -3,7 +3,6 @@
 
 #include "common_socket.h"
 
-#define INITIAL_FD -1
 #define INITIAL_HEADER_BYTES 16
 #define RESPONSE_LEN 3
 
@@ -11,7 +10,7 @@ typedef struct {
 	socket_t socket;
 } server_t;
 
-//inicializa al servidor con un socket al que primero inicializa con un
+//inicializa al servidor con un socket al que primero instancia con un
 //valor "simbólico" de -1
 //luego, trata de atarlo y dejarlo escuchando
 //devuelve 0 si estos dos pasos fueron exitosos o 1 si alguno falló

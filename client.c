@@ -1,14 +1,12 @@
-#include <unistd.h>
-#include <netdb.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include "client.h"
 #include "common_protocol.h"
 
 //toma una línea del archivo para su posterior traducción
-//si no alcanzo el final del archivo, retorna false
-//caso contrario, retorna true
-static bool _get_msg(FILE *input, char file_buf[], char **msg_buf, int *offset);
+//retorna un buffer con el mensaje
+static char *_get_msg(FILE *input, char file_buf[], bool *eof, int *offset);
 
 //le otorga el mensaje traducido al socket para su envío
 //primero manda los 16 bytes iniciales, y luego el header y el body (si lo hay)
@@ -18,7 +16,7 @@ static int _send_message(client_t *self, char *buf, int sign_padding);
 
 int client_initialize(client_t *self, const char* hostname, const char* port){
 	socket_t socket;
-	socket_initialize(&socket, INITIAL_FD);
+	socket_initialize(&socket);
 	self -> socket = socket;
 	if(socket_connect(&self -> socket, hostname, port) == -1)
 		return 1;
@@ -28,26 +26,25 @@ int client_initialize(client_t *self, const char* hostname, const char* port){
 
 int client_execute(client_t *self, FILE* input){
 	protocol_t protocol;
-	char *message_buffer = calloc(1, sizeof(char));
+	char *message_buffer;
 	char file_buffer[BUFFER_LEN + 1];
 	int sign_padding, offset = 0, status;
 	int *ptr = &offset;
-	bool file_end;
+	bool file_end, *bool_ptr = &file_end;
 
 	do{
 		protocol_initialize(&protocol, self -> sent_messages);
-		memset(message_buffer, '\0', strlen(message_buffer));
-		file_end = _get_msg(input, file_buffer, &message_buffer, ptr);
+		message_buffer = _get_msg(input, file_buffer, bool_ptr, ptr);
 		sign_padding = protocol_translate(&protocol, &message_buffer);
 		status = _send_message(self, message_buffer, sign_padding);
 		if(status == 1){
 			protocol_destroy(&protocol);
 			return 1;
 		}
+		free(message_buffer);
 		protocol_destroy(&protocol);
 	}while(!file_end);
 
-	free(message_buffer);
 	return 0;
 }
 
@@ -57,14 +54,15 @@ int client_destroy(client_t *self){
 	return 0;
 }
 
-static bool _get_msg(FILE *input, char file_buf[], char **msg_buf, int *offset){
-	bool line_end = false, file_end = false;
+static char *_get_msg(FILE *input, char file_buf[], bool *eof, int *offset){
+	bool line_end = false;
+	*eof = false;
 	int i;
 	char *aux_buffer = calloc(1, sizeof(char));
 
 	while(!line_end){
 		if(fread(file_buf, sizeof(char), BUFFER_LEN, input) != BUFFER_LEN)
-			file_end = true;
+			*eof = true;
 		file_buf[BUFFER_LEN] = '\0';
 		for(i = 0; i < BUFFER_LEN; i++){
 			if(file_buf[i] == '\n'){
@@ -78,10 +76,8 @@ static bool _get_msg(FILE *input, char file_buf[], char **msg_buf, int *offset){
 	}
 
 	*offset += strlen(aux_buffer) + 1;
-	free(*msg_buf);
-	*msg_buf = aux_buffer;
 	fseek(input, *offset, SEEK_SET);
-	return file_end;
+	return aux_buffer;
 }
 
 static int _send_message(client_t *self, char *buf, int sign_padding){
@@ -89,17 +85,16 @@ static int _send_message(client_t *self, char *buf, int sign_padding){
 	uint32_t header_len, body_len;
 	memcpy(&body_len, &buf[4], sizeof(int));
     memcpy(&header_len, &buf[12], sizeof(int));
-    body_len = ntohl(body_len);
-    header_len = ntohl(header_len);
+
 	char response[RESPONSE_LEN];
 
-	if(socket_send(&self -> socket, buf, INITIAL_HEADER_BYTES, offset) == 1)				
+	if(socket_send(&self -> socket, buf, INITIAL_HEADER_BYTES) == -1)				
 		return 1;
 	offset = INITIAL_HEADER_BYTES;
-	if(socket_send(&self -> socket, buf, header_len, offset) == 1)
+	if(socket_send(&self -> socket, buf + offset, header_len) == -1)
 		return 1;
 	offset += header_len + sign_padding;
-	if(socket_send(&self -> socket, buf, body_len, offset) == 1)
+	if(socket_send(&self -> socket, buf + offset, body_len) == -1)
 		return 1;
 	self -> sent_messages++;
 	socket_receive(&self -> socket, response, RESPONSE_LEN);

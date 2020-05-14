@@ -18,13 +18,14 @@ Se optó por tener un Protocolo que no forme parte de la comunicación entre las
 
 A continuación se muestra un diagrama con los Tipo de Dato Abstracto que componen el modelo:
 
-![diagrama](img/diagrama1.png)
+![diagrama](img/diagrama.png)
 
-Como se ve, sólamente se emplearon cuatro TDAs. En algún momento se pensó en tener un TDA entre el Cliente y el Protocolo, que fuera el encargado de abrir el archivo y de extraer las líneas para enviárselas al Protocolo para que este las tradujera, pero complicaba la recepción del mensaje traducido por parte del Cliente, y la función que venía a cumplir no parecía enteramente fuera de lugar si fuera ejecutada por el Cliente, por lo que se decidió descartarlo. 
+Como se ve, sólamente se emplearon cinco TDAs. En algún momento se pensó en tener un TDA entre el Cliente y el Protocolo, que fuera el encargado de abrir el archivo y de extraer las líneas para enviárselas al Protocolo para que este las tradujera, pero complicaba la recepción del mensaje traducido por parte del Cliente, y la función que venía a cumplir no parecía enteramente fuera de lugar si fuera ejecutada por el Cliente, por lo que se decidió descartarlo. 
 
 Por otra parte, es el Servidor el que decodifica el mensaje una vez recibido. Se tuvo la idea de que el Servidor le enviara el mensaje al Protocolo una vez que lo hubiera recibido, para que fuera él quien lo decodificara, pero quizás era cargar al Protocolo con demasiada responsabilidad.
 
-Al igual que con el Cliente y los archivos, se barajó la posibilidad de hacer un TDA específico para la muestra del mensaje por pantalla. Como sucedió en el caso anterior, el papel que jugaba este TDA quizás no era lo suficientemente importante como para justificar su creación.
+Al igual que con el Cliente y los archivos, se barajó la posibilidad de hacer un TDA específico para la muestra del mensaje por pantalla. Como sucedió en el caso anterior, el papel que jugaba este TDA quizás no era lo suficientemente importante como para justificar su creación. Sin embargo, este fue agregado para la reentrega, ya que también es cierto que le quita esta responsabilidad 
+de encima al Servidor. Con el diseño anterior, el Servidor tenía mucha más responsabilidad.
 
 ## Detalles de implementación y problemas encontrados
 
@@ -44,7 +45,7 @@ Para la traducción del mensaje, el Cliente le otorga un buffer que contiene el 
 
 El mensaje es enviado y recibido en tres partes: primero se mandan los 16 bytes iniciales, que contienen la longitud tanto del cuerpo como de la cabecera, para que el Servidor pueda proveer los buffers de tamaño correspondiente, y luego se procede con el envío de las partes restantes. 
 
-La función `socket_send()` trabaja con un offset, para saber en donde ubicarse en el mensaje, para entonces poder enviar las tres partes por separado. Esto generó un problema, ya que los bytes de padding de la firma no se encuentran como información disponible en los primeros bytes del mensaje, por lo que el Cliente no puede indicar el offset adecuado para enviar el cuerpo del mensaje, esto es, 16 bytes iniciales + longitud de la cabecera + bytes de padding de la firma. 
+El Cliente es el encargado de otorgarle el mensaje dividido al socket para el envío. Esto generó un problema, ya que los bytes de padding de la firma no se encuentran como información disponible en los primeros bytes del mensaje, por lo que el Cliente no puede establecer el offset adecuado para enviar el cuerpo del mensaje, esto es, 16 bytes iniciales + longitud de la cabecera + bytes de padding de la firma.
 
 Se pensó en enviar el mensaje en dos partes únicamente: los 16 bytes iniciales y cuerpo y cabecera juntos por otro lado. De esta forma, el Servidor tendría que proveer un buffer de longitud de cabecera + longitud de cuerpo + padding de la firma, pero este último valor es desconocido. Por lo tanto se otorgaría un buffer de longitud de cabecera + longitud de cuerpo + 7, siendo 7 la máxima cantidad de bytes de padding para la firma, y que de última el buffer quedara con algunos bytes sin rellenar. Sin embargo, esta solución generaba inconvenientes difíciles de resolver en la lógica del ciclo `while` utilizado en la función `socket_receive()`, por lo que se decidió descartarla y seguir con la solución propuesta arriba.
 
@@ -52,7 +53,7 @@ Otra alternativa viable habría sido que todos los buffers provistos por el Serv
 
 ### Muestra por pantalla y respuesta
 
-Una vez recibido el mensaje, el Servidor simplemente lee los parámetros del mensaje y los va imprimiendo por pantalla, primero de la cabecera, y luego del cuerpo (si es que hay). Una vez hecho esto, envía la respuesta al Cliente, y vuelve a esperar el envío de nuevos mensajes.
+Una vez recibido el mensaje, el Servidor delega esta responsabilidad al TDA Mensaje, el cual lee los parámetros del mensaje y los va imprimiendo por pantalla, primero de la cabecera, y luego del cuerpo (si es que hay). Una vez hecho esto, el Servidor envía la respuesta al Cliente, y vuelve a esperar el envío de nuevos mensajes.
 
 ### Fin de la conexión
 

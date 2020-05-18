@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "common_message.h"
+#include "common_swapper.h"
 
 //recorre el header del mensaje traducido,
 //recuperando de él los parámetros y sus tipos
@@ -17,6 +18,7 @@ void message_print(char initial_buf[], char *header_buf, char *body_buf){
 	_print_header(initial_buf, header_buf);
 	int body_len;
 	memcpy(&body_len, &initial_buf[4], sizeof(int));
+    body_len = swapper_swap_bytes(body_len);
 	if(body_len > 0)
 		_print_body(body_buf, body_len);
 	printf("\n");
@@ -26,6 +28,7 @@ static void _print_header(char initial_buf[], char *header_buf){
     char param_type, *param_value;
     int param_len, header_len, i = 0, j = 0;
     memcpy(&header_len, &initial_buf[12], sizeof(int));
+    header_len = swapper_swap_bytes(header_len);
 
     printf("* Id: 0x%08x\n", (int) initial_buf[8]);
     while (i < header_len){

@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "common_protocol.h"
+#include "common_swapper.h"
 
 //lee el mensaje hasta encontrar un espacio, en cuyo caso llama
 //a la función _write_header
@@ -44,6 +45,7 @@ void protocol_initialize(protocol_t *self, uint32_t message_id){
 	*(self -> header + 1) = 1;
 	*(self -> header + 2) = 0;
 	*(self -> header + 3) = 1;
+	id = swapper_swap_bytes(id);
 	memcpy((self -> header + 8), &id, sizeof(uint32_t));
 	self -> header_len = INITIAL_HEADER_BYTES;
 	self -> sign_len = 0;
@@ -92,6 +94,7 @@ static void _write_header(protocol_t *self, char *str, int spaces){
 	self -> header = realloc(self -> header, new_header_len);
 	_header_assign(self, self -> header_len, spaces);
 	uint32_t str_len = strlen(str);
+	str_len = swapper_swap_bytes(str_len);
 	memcpy((self->header + self->header_len + 4), &str_len, sizeof(uint32_t));
 	strncpy((self -> header + self -> header_len + 8), str, strlen(str));
 	for(int i = self->header_len + 8 + strlen(str); i < new_header_len; i++)
@@ -198,6 +201,7 @@ static void _signature_padding(protocol_t *self, int param_count){
 
 static void _write_body(protocol_t *self, char *str){
 	uint32_t str_len = strlen(str);
+	str_len = swapper_swap_bytes(str_len);
 	self->body = realloc(self->body, self->body_len + strlen(str) + 5);
 	memcpy((self -> body + self -> body_len), &str_len, sizeof(uint32_t));
 	strncpy(self -> body + self -> body_len + 4, str, strlen(str));
@@ -208,8 +212,10 @@ static void _write_body(protocol_t *self, char *str){
 static int _assemble_message(protocol_t *self, char **message_buffer){
 	char *aux_buf;
 	uint32_t body_len = self -> body_len;
+	body_len = swapper_swap_bytes(body_len);
 	uint32_t header_len;
 	header_len = self->header_len + self->sign_len - INITIAL_HEADER_BYTES;
+	header_len = swapper_swap_bytes(header_len);
 	memcpy((self -> header + 12), &header_len, sizeof(uint32_t));
 	memcpy((self -> header + 4), &body_len, sizeof(uint32_t));
 	uint32_t sign_len = self -> sign_len + self -> sign_padding;

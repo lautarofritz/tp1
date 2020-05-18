@@ -20,12 +20,14 @@ A continuación se muestra un diagrama con los Tipo de Dato Abstracto que compon
 
 ![diagrama](img/diagrama.png)
 
-Como se ve, sólamente se emplearon cinco TDAs. En algún momento se pensó en tener un TDA entre el Cliente y el Protocolo, que fuera el encargado de abrir el archivo y de extraer las líneas para enviárselas al Protocolo para que este las tradujera, pero complicaba la recepción del mensaje traducido por parte del Cliente, y la función que venía a cumplir no parecía enteramente fuera de lugar si fuera ejecutada por el Cliente, por lo que se decidió descartarlo. 
+En algún momento se pensó en tener un TDA entre el Cliente y el Protocolo, que fuera el encargado de abrir el archivo y de extraer las líneas para enviárselas al Protocolo para que este las tradujera, pero complicaba la recepción del mensaje traducido por parte del Cliente, y la función que venía a cumplir no parecía enteramente fuera de lugar si fuera ejecutada por el Cliente, por lo que se decidió descartarlo. 
 
 Por otra parte, es el Servidor el que decodifica el mensaje una vez recibido. Se tuvo la idea de que el Servidor le enviara el mensaje al Protocolo una vez que lo hubiera recibido, para que fuera él quien lo decodificara, pero quizás era cargar al Protocolo con demasiada responsabilidad.
 
 Al igual que con el Cliente y los archivos, se barajó la posibilidad de hacer un TDA específico para la muestra del mensaje por pantalla. Como sucedió en el caso anterior, el papel que jugaba este TDA quizás no era lo suficientemente importante como para justificar su creación. Sin embargo, este fue agregado para la reentrega, ya que también es cierto que le quita esta responsabilidad 
 de encima al Servidor. Con el diseño anterior, el Servidor tenía mucha más responsabilidad.
+
+Por último, todos los TDAs (salvo Socket) se relacionan con un TDA Swapper, que invierte los bytes de un número dado si la arquitectura es big endian, mientras que devuelve el número tal como lo recibió si es little. Esta TDA no figura en el diagrama ya que tiene una función más bien oculta.
 
 ## Detalles de implementación y problemas encontrados
 

@@ -3,6 +3,7 @@
 #include "server.h"
 #include "common_socket.h"
 #include "common_message.h"
+#include "common_swapper.h"
 
 //trata de asociar el socket recibido por parámetro a una conexión entrante
 //si el file descriptor recibido es válido, retorna 0
@@ -18,10 +19,7 @@ static int _recv_message(socket_t *peer_socket);
 static void _send_response(socket_t *peer_socket);
 
 int server_initialize(server_t *self, const char* hostname, const char* port){
-    socket_t socket;
-    socket_initialize(&socket);
-    self -> socket = socket;
-
+    socket_initialize(&self -> socket);
 	if(socket_bind_listen(&self -> socket, hostname, port) == -1){
         return 1;
     }
@@ -73,14 +71,16 @@ static int _recv_message(socket_t *peer_socket){
 
     memcpy(&body_len, &initial_buf[4], sizeof(int));
     memcpy(&header_len, &initial_buf[12], sizeof(int));
+    body_len = swapper_swap_bytes(body_len);
+    header_len = swapper_swap_bytes(header_len);
 
     header_buf = malloc(header_len);
-    if (socket_receive(peer_socket, header_buf, header_len) == 1)
+    if (socket_receive(peer_socket, header_buf, header_len) == -1)
         return 1;
 
     if (body_len > 0){
         body_buf = malloc(body_len);
-        if (socket_receive(peer_socket, body_buf, body_len) == 1)
+        if (socket_receive(peer_socket, body_buf, body_len) == -1)
             return 1;
     }
 

@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include "client.h"
 #include "common_protocol.h"
+#include "common_swapper.h"
 
 //toma una línea del archivo para su posterior traducción
 //retorna un buffer con el mensaje
@@ -15,9 +16,7 @@ static char *_get_msg(FILE *input, char file_buf[], bool *eof, int *offset);
 static int _send_message(client_t *self, char *buf, int sign_padding);
 
 int client_initialize(client_t *self, const char* hostname, const char* port){
-	socket_t socket;
-	socket_initialize(&socket);
-	self -> socket = socket;
+	socket_initialize(&self -> socket);
 	if(socket_connect(&self -> socket, hostname, port) == -1)
 		return 1;
 	self -> sent_messages = 0;
@@ -85,6 +84,8 @@ static int _send_message(client_t *self, char *buf, int sign_padding){
 	uint32_t header_len, body_len;
 	memcpy(&body_len, &buf[4], sizeof(int));
     memcpy(&header_len, &buf[12], sizeof(int));
+    body_len = swapper_swap_bytes(body_len);
+    header_len = swapper_swap_bytes(header_len);
 
 	char response[RESPONSE_LEN];
 
